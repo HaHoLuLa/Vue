@@ -4,15 +4,15 @@
 <template>
   <h1>인덱스</h1>
   <p>
-    <router-link to="hello">hello</router-link>
+    <router-link to="/hello">hello</router-link>
   </p>
   <p>
-    <router-link to="data">data</router-link>
+    <router-link to="/data">data</router-link>
   </p>
   <p>
-    <router-link to="login">login</router-link>
+    <router-link to="/login">login</router-link>
   </p>
   <p>
-    <router-link to="editor">editor</router-link>
+    <router-link to="/editor">editor</router-link>
   </p>
 </template>

@@ -5,6 +5,8 @@ import Data from "../components/Data.vue";
 import Login from "../components/Login.vue"
 import Editor from "../components/Editor.vue";
 
+const path = import.meta.env.VITE_SERVER_URL ?? ""
+
 const routes = [
   {
     path: "/",
@@ -29,7 +31,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(path),
   routes
 })
 
