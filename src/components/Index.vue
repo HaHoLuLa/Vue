@@ -12,4 +12,7 @@
   <p>
     <router-link to="login">login</router-link>
   </p>
+  <p>
+    <router-link to="editor">editor</router-link>
+  </p>
 </template>

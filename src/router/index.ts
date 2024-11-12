@@ -3,6 +3,7 @@ import HelloWorld from "../components/HelloWorld.vue";
 import Index from "../components/Index.vue";
 import Data from "../components/Data.vue";
 import Login from "../components/Login.vue"
+import Editor from "../components/Editor.vue";
 
 const routes = [
   {
@@ -20,6 +21,10 @@ const routes = [
   {
     path: "/login",
     component: Login
+  },
+  {
+    path: "/editor",
+    component: Editor
   }
 ]
 
