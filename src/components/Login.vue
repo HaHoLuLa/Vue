@@ -37,9 +37,11 @@ const handleProfile = async () => {
 </script>
 
 <template>
-  <input type="text" name="id" v-model="form.id" @input="handleChange">
-  <input type="password" name="pw" v-model="form.pw" @input="handleChange">
-  <input type="submit" @click="handleLogin">
-  <button @click="handleLogout">로그아웃</button>
-  <button @click="handleProfile">정보</button>
+  <div class="container">
+    <input type="text" name="id" v-model="form.id" @input="handleChange">
+    <input type="password" name="pw" v-model="form.pw" @input="handleChange">
+    <input type="submit" @click="handleLogin">
+    <input type="button" @click="handleLogout" value="로그아웃"></input>
+    <input type="button" @click="handleProfile" value="정보"></input>
+  </div>
 </template>
