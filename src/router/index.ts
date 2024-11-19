@@ -4,6 +4,7 @@ import Index from "../components/Index.vue";
 import Data from "../components/Data.vue";
 import Login from "../components/Login.vue"
 import Editor from "../components/Editor.vue";
+import Register from "../components/Register.vue";
 
 const path = import.meta.env.VITE_SERVER_URL ?? ""
 
@@ -27,6 +28,10 @@ const routes = [
   {
     path: "/editor",
     component: Editor
+  },
+  {
+    path: "/register",
+    component: Register
   }
 ]
 

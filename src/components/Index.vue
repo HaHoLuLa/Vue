@@ -1,4 +1,15 @@
 <script setup lang="ts">
+import axios from 'axios';
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter()
+
+onMounted(async () => {
+  await axios.get("http://localhost:8000/user/profile", { withCredentials: true })
+  .then(res => {console.log(res.data); router.push("/editor") })
+  .catch(e => {console.error(e); router.push("/login")})
+})
 </script>
 
 <template>
