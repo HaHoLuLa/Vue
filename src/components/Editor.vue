@@ -1,26 +1,41 @@
 <template>
-  <div class="title">
-    <input type="text" placeholder="새 페이지" id="title" @input="(e: Event) => {
-      const target = e.target as HTMLInputElement
-      title = target.value
-    }">
+  <div style="display: flex;">
+    <div class="menu">
+      <p style="display: flex; justify-content: space-between;">
+        페이지
+        <button @click="handleLogout" style="padding: 1px;">로그아웃</button>
+      </p>
+      <div>
+        <div v-if="!props.noteId">
+          <span @click="handleSubmit">새 페이지</span>
+        </div>
+        <div v-for="(item, index) in notes" :key="index" style="display: flex; justify-content: space-between; align-items: center;">
+          <span @click="router.push(`/${props.user}/editor/${item.id}`); handleSubmit()">{{ item.title }}</span> <button @click="handleDelete(item.id)" style="padding: 1px;">삭제</button>
+        </div>
+        <!-- <div class="grid buttons">
+          <button @click="handleSubmit">저장</button>
+        </div> -->
+      </div>
+    </div>
+    <div class="main">
+      <div class="title">
+        <input type="text" placeholder="새 페이지" id="title" @input="(e: Event) => {
+          const target = e.target as HTMLInputElement
+          title = target.value
+        }" v-model="title" @keydown="(e) => {
+          if (e.key === 'Enter') {
+            editor?.commands.focus()
+          }
+        }">
+      </div>
+      <editor-content :editor="editor" class="editor" />
+    </div>
   </div>
-  <editor-content :editor="editor" class="editor" />
-  <!-- <div class="viewer">
-    <div>{{ data }}</div>
-    <div v-html="data"></div>
-  </div> -->
-  <!-- <div class="container">
-    <input type="button" value="보내기" @click="handleSubmit">
-  </div> -->
-  <!-- <div class="container">
-    <input type="button" value="보내기" @click="handleLogout">
-  </div> -->
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useEditor, EditorContent } from '@tiptap/vue-3'
+import { onMounted, ref, watch } from 'vue';
+import { useEditor, EditorContent, JSONContent } from '@tiptap/vue-3'
 import BulletList from '@tiptap/extension-bullet-list';
 import CharacterCount from '@tiptap/extension-character-count';
 // import CodeBlock from '@tiptap/extension-code-block';
@@ -71,20 +86,40 @@ import 'highlight.js/styles/atom-one-dark.css';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 
+interface Props {
+  user: string
+  noteId: string
+}
+
+interface Notes {
+  id: string
+  num?: number
+  writer: string
+  title: string
+  content: JSONContent
+  regtime: Date
+  type: number
+}
+
 const router = useRouter()
 const data = ref()
 const title = ref("")
+const notes = ref<Notes[]>([])
+const props = defineProps<Props>()
 const lowlight = createLowlight(all)
 lowlight.register("css", css)
 lowlight.register("js", js)
 lowlight.register("ts", ts)
 lowlight.register("html", html)
 
-onMounted(() => {
+onMounted(async () => {
   const title = document.getElementById("title") as HTMLInputElement
   // console.log(lowlight.listLanguages())
-  if (title.value === "")
+  if (title.value === "" && !props.noteId)
     title?.focus()
+
+  await axios.get(`http://localhost:8000/note?writer=${props.user}`).then(res => notes.value = res.data).catch(e => console.error(e))
+  console.log(notes.value)
 })
 
 const editor = useEditor({
@@ -102,7 +137,8 @@ const editor = useEditor({
     }),
     Document,
     Dropcursor.configure({
-      color: "#B2E51A"
+      // color: "#B2E51A",
+      color: "#3C71F7"
     }),
     Focus,
     FontFamily,
@@ -162,13 +198,62 @@ const editor = useEditor({
   onUpdate({ editor }) { data.value = editor.getJSON() }, // onUpdate: ({ editor }) => { data.value = editor.getHTML() } 과 동일
 })
 
+watch(
+  () => props.noteId,
+  async (newNoteId) => {
+    if (newNoteId) {
+      try {
+        // noteId가 변경되면 새로운 노트 데이터를 가져옵니다.
+        const noteResponse = await axios.get(`http://localhost:8000/note/${props.user}?id=${newNoteId}`);
+        const note = noteResponse.data;
+        console.log(note);
+
+        // 에디터와 제목 초기화
+        data.value = note.content;
+        title.value = note.title !== "새 페이지" ? note.title : "";
+
+        // editor가 초기화된 후에만 commands 호출
+        if (editor.value) {
+          editor.value.commands.setContent(note.content);
+        }
+      } catch (error) {
+        console.error(`Error fetching note with id ${newNoteId}:`, error);
+      }
+    } else {
+      // noteId가 없는 경우 에디터를 초기 상태로 설정
+      data.value = {};
+      title.value = "";
+      if (editor.value) {
+        editor.value.commands.clearContent();
+      }
+    }
+  },
+  { immediate: true } // 컴포넌트가 로드될 때도 즉시 실행
+);
+
 const handleSubmit = async () => {
-  await axios.post("http://localhost:8000/note/write", {
-    title: title.value,
-    id: "TEST",
-    content: data.value,
-    writer: "TEST"
-  })
+  try {
+    // 데이터 저장 요청
+    await axios.post("http://localhost:8000/note/write", {
+      id: props.noteId,
+      title: title.value || "새 페이지",
+      content: data.value,
+      writer: props.user,
+    });
+
+    // 저장 후 notes 값 갱신
+    const response = await axios.get(`http://localhost:8000/note?writer=${props.user}`);
+    notes.value = response.data;
+  } catch (error) {
+    console.error("Error during submit or fetching notes:", error);
+  }
+};
+
+const handleDelete = async (id: string) => {
+  await axios.post(`http://localhost:8000/note/delete/${id}`).then(res => console.log(res.data)).catch(e => console.error(e))
+  await axios.get(`http://localhost:8000/note?writer=${props.user}`).then(res => notes.value = res.data).catch(e => console.error(e))
+  if (props.noteId === id)
+    router.push(`/${props.user}/editor`)
 }
 
 const handleLogout = async () => {
@@ -179,28 +264,54 @@ const handleLogout = async () => {
 </script>
 
 <style lang="scss">
-@use '@picocss/pico/css/pico.lime.min.css';
+@use '@picocss/pico/css/pico.blue.min.css';
 
 .container {
-  max-width: 800px;
+  max-width: 60%;
 }
 
-.title {
-  @extend .container;
+.menu {
+  padding: 0.5rem;
+  position: fixed;
+  left: 0;
+  width: 240px;
+  height: 100vh;
+  background-color: #1f232a;
+}
 
-  input {
-    padding: 0;
-    margin: 0;
-    background-color: inherit;
-    border: none;
-    margin-top: 20vh;
-    margin-bottom: 10px;
-    font-size: 2rem;
+@media (prefers-color-scheme: light) {
+  .menu {
+    background-color: #eee;
+  }
+}
 
-    &:focus {
-      outline: #8a91a2;
-      box-shadow: none;
+.main {
+  width: calc(100% - 240px);
+  position: absolute;
+  right: 0;
+
+  .title {
+    @extend .container;
+
+    input {
+      padding: 0;
+      margin: 0;
+      background-color: inherit;
+      border: none;
+      margin-top: 15vh;
+      margin-bottom: 10px;
+      font-size: 2rem;
+
+      &:focus {
+        outline: #8a91a2;
+        box-shadow: none;
+      }
     }
+  }
+
+  .editor {
+    @extend .container;
+    padding-bottom: 30vh;
   }
 }
 
@@ -213,11 +324,6 @@ const handleLogout = async () => {
   button {
     @extend .outline;
   }
-}
-
-.editor {
-  @extend .container;
-  padding-bottom: 30vh;
 }
 
 .viewer {

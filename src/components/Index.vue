@@ -7,13 +7,13 @@ const router = useRouter()
 
 onMounted(async () => {
   await axios.get("http://localhost:8000/user/profile", { withCredentials: true })
-  .then(res => {console.log(res.data); router.push("/editor") })
+  .then(res => {console.log(res.data); router.push(`/${res.data.user.id}/editor`) })
   .catch(e => {console.error(e); router.push("/login")})
 })
 </script>
 
 <template>
-  <h1>인덱스</h1>
+  <!-- <h1>인덱스</h1>
   <p>
     <router-link to="/hello">hello</router-link>
   </p>
@@ -25,5 +25,5 @@ onMounted(async () => {
   </p>
   <p>
     <router-link to="/editor">editor</router-link>
-  </p>
+  </p> -->
 </template>

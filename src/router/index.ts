@@ -1,7 +1,6 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, RouteLocationNormalized } from "vue-router";
 import HelloWorld from "../components/HelloWorld.vue";
 import Index from "../components/Index.vue";
-import Data from "../components/Data.vue";
 import Login from "../components/Login.vue"
 import Editor from "../components/Editor.vue";
 import Register from "../components/Register.vue";
@@ -18,16 +17,13 @@ const routes = [
     component: HelloWorld
   },
   {
-    path: "/data",
-    component: Data
-  },
-  {
     path: "/login",
     component: Login
   },
   {
-    path: "/editor",
-    component: Editor
+    path: "/:user/editor/:noteId?",
+    component: Editor,
+    props: (route: RouteLocationNormalized) => ({ user: route.params.user, noteId: route.params.noteId })
   },
   {
     path: "/register",

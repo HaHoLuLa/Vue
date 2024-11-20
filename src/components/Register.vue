@@ -30,7 +30,7 @@ const handleRegister = async () => {
 
 <template>
   <div class="container" style="padding-top: 20vh;">
-    <h2>회원가입</h2>
+    <h2>Note 회원가입</h2>
     <label>
       아이디
       <input type="text" name="userId" v-model="form.userId" @input="handleChange" aria-label="Text">
