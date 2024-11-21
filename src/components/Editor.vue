@@ -9,12 +9,11 @@
         <div v-if="!props.noteId">
           <span @click="handleSubmit">새 페이지</span>
         </div>
-        <div v-for="(item, index) in notes" :key="index" style="display: flex; justify-content: space-between; align-items: center;">
-          <span @click="router.push(`/${props.user}/editor/${item.id}`); handleSubmit()">{{ item.title }}</span> <button @click="handleDelete(item.id)" style="padding: 1px;">삭제</button>
+        <div v-for="(item, index) in notes" :key="index"
+          style="display: flex; justify-content: space-between; align-items: center;">
+          <span @click="router.push(`/${props.user}/editor/${item.id}`); handleSubmit()" style="cursor: pointer;">{{
+            item.title }}</span> <button @click="handleDelete(item.id)" style="padding: 1px;">삭제</button>
         </div>
-        <!-- <div class="grid buttons">
-          <button @click="handleSubmit">저장</button>
-        </div> -->
       </div>
     </div>
     <div class="main">
@@ -23,7 +22,7 @@
           const target = e.target as HTMLInputElement
           title = target.value
         }" v-model="title" @keydown="(e) => {
-          if (e.key === 'Enter') {
+          if (e.key === 'ArrowDown' || e.key === 'Enter') {
             editor?.commands.focus()
           }
         }">
@@ -155,7 +154,7 @@ const editor = useEditor({
     OrderedList,
     Paragraph,
     Placeholder.configure({
-      placeholder: ({ editor }) => {
+      placeholder: ({ editor, node }) => {
         // const isFirstLineEmpty = editor.getHTML() === '<p></p>' || editor.getHTML() === '<p><br></p>';
 
         // // 첫 줄이 비어 있으면 무조건 보이게
@@ -164,7 +163,34 @@ const editor = useEditor({
         // }
 
         // 포커스된 경우만 표시
-        return editor.isFocused ? "글 작성하기" : ""
+        // console.log(node.type.name)
+        let placeholderText;
+        switch (node.type.name) {
+          case "taskList":
+            placeholderText = "      할 일"
+            break;
+          case "paragraph":
+            editor.isFocused ? placeholderText = "글 작성하기" : placeholderText = ""
+            // placeholderText = "글 작성하기"
+            break;
+          case "heading":
+            placeholderText = `제목${node.attrs.level}`
+            break;
+          case "bulletList":
+          case "orderedList":
+            placeholderText = "리스트"
+            break;
+          case "codeBlock":
+            placeholderText = "코드 블럭"
+            break;
+          case "blockquote":
+            placeholderText = "인용문"
+            break;
+          default:
+            placeholderText = ""
+        }
+
+        return placeholderText
       },
     }),
     Superscript,
@@ -195,7 +221,37 @@ const editor = useEditor({
     History,
     BubbleMenu,
   ],
-  onUpdate({ editor }) { data.value = editor.getJSON() }, // onUpdate: ({ editor }) => { data.value = editor.getHTML() } 과 동일
+  onUpdate({ editor }) {
+    data.value = editor.getJSON();
+  }, // onUpdate: ({ editor }) => { data.value = editor.getHTML() } 과 동일
+  editorProps: {
+    handleKeyDown: (view, event) => {
+      // 에디터 포커스 여부 확인
+      const isFocused = view.hasFocus();
+
+      // 문서의 첫 번째 노드와 상태 확인
+      const firstNode = view.state.doc.firstChild;
+      const isFirstParagraph = firstNode?.type.name === "paragraph";
+      // const isFirstEmpty = firstNode?.content.size === 0;
+
+      // 현재 선택된 범위 (커서 위치)
+      const selection = view.state.selection;
+      const isCursorInFirstLine = selection.$from.depth === 1 && selection.$from.pos === 1;
+
+      // 제목 필드 참조
+      const title = document.getElementById("title") as HTMLInputElement;
+
+      if (
+        (event.key === "Backspace" || event.key === "ArrowUp") && // Backspace 키 입력
+        isFocused && // 에디터에 포커스가 있는 상태
+        isFirstParagraph && // 첫 번째 줄이 paragraph
+        // isFirstEmpty && // 첫 번째 줄이 비어있는 상태
+        isCursorInFirstLine // 커서가 첫 번째 줄에 위치한 상태
+      ) {
+        title.focus(); // 제목 필드로 포커스 이동
+      }
+    }
+  }
 })
 
 watch(
@@ -301,7 +357,7 @@ const handleLogout = async () => {
       margin-top: 15vh;
       margin-bottom: 10px;
       font-size: 2rem;
-
+      
       &:focus {
         outline: #8a91a2;
         box-shadow: none;
@@ -348,10 +404,26 @@ const handleLogout = async () => {
 //   // font-style: italic;
 // }
 
-.tiptap p.is-empty::before {
+.tiptap .is-empty::before {
   color: #8a91a2;
   content: attr(data-placeholder);
   float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+pre {
+  position: relative;
+
+}
+
+pre.is-empty::before {
+  color: #8a91a2;
+  content: attr(data-placeholder);
+  // float: left;
+  position: absolute;
+  top: 1.1rem;
+  left: 0.9rem;
   height: 0;
   pointer-events: none;
 }
