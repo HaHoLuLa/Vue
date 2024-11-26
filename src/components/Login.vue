@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import axios from 'axios';
-import { reactive, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 
 const router = useRouter()
@@ -12,6 +12,10 @@ const form = reactive({
 
 const error = ref()
 
+onMounted(async () => {
+  await axios.get("http://localhost:8000/user/profile", { withCredentials: true }).then(res => router.push(`/${res.data.user.id}/${res.data.user.lastView}`)).catch(e => console.error(e))
+})
+
 const handleChange = (e: Event) => {
   const target = e.target as HTMLInputElement
   const { name, value } = target
@@ -21,12 +25,15 @@ const handleChange = (e: Event) => {
     form[name as keyof typeof form] = value
   }
 }
+
 const handleLogin = async () => {
-  await axios.post("http://localhost:8000/user/login", form, {
-    withCredentials: true
-  })
-    .then(res => { console.log(res.data); router.push("/") })
-    .catch(e => { console.error(e); if (e) error.value = true })
+  try {
+    await axios.post("http://localhost:8000/user/login", form, { withCredentials: true })
+    const response = await axios.get("http://localhost:8000/user/profile", { withCredentials: true })
+    router.push(`/${response.data.user.id}/${response.data.user.lastView || ""}`)
+  } catch (e) {
+    error.value = true
+  }
 }
 </script>
 
@@ -35,12 +42,14 @@ const handleLogin = async () => {
     <h2>Note 로그인</h2>
     <label>
       아이디
-      <input type="text" name="userId" v-model="form.userId" @input="handleChange" aria-label="Text" :aria-invalid="error">
+      <input type="text" name="userId" v-model="form.userId" @input="handleChange" aria-label="Text"
+        :aria-invalid="error">
       <small v-if="error">아이디 또는 비밀번호 잘못됨</small>
     </label>
     <label>
       비밀번호
-      <input type="password" name="userPw" v-model="form.userPw" @input="handleChange" aria-label="Password" :aria-invalid="error">
+      <input type="password" name="userPw" v-model="form.userPw" @input="handleChange" aria-label="Password"
+        :aria-invalid="error">
       <small v-if="error">아이디 또는 비밀번호 잘못됨</small>
     </label>
     <div class="grid">

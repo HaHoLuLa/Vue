@@ -1,18 +1,19 @@
 <template>
   <div style="display: flex;">
     <div class="menu">
-      <p style="display: flex; justify-content: space-between;">
+      <p>
         페이지
-        <button @click="handleLogout" style="padding: 1px;">로그아웃</button>
+        <button @click="handleLogout">로그아웃</button>
       </p>
       <div>
         <div v-if="!props.noteId">
           <span @click="handleSubmit">새 페이지</span>
         </div>
-        <div v-for="(item, index) in notes" :key="index"
-          style="display: flex; justify-content: space-between; align-items: center;">
-          <span @click="router.push(`/${props.user}/editor/${item.id}`); handleSubmit()" style="cursor: pointer;">{{
-            item.title }}</span> <button @click="handleDelete(item.id)" style="padding: 1px;">삭제</button>
+        <div v-for="(item, index) in notes" :key="index">
+          <span @click="router.push(`/${props.user}/${item.id}`); handleSubmit(); title = item.title">
+            {{ item.id === props.noteId ? title || "새 페이지" : item.title }}
+          </span>
+          <button @click="handleDelete(item.id)">삭제</button>
         </div>
       </div>
     </div>
@@ -28,32 +29,41 @@
         }">
       </div>
       <editor-content :editor="editor" class="editor" />
+      <bubble :editor="editor" v-if="editor" :tippy-options="{ duration: 0 }">
+        <div>
+          <span @click="editor.chain().focus().toggleBold().run()">B</span>
+          <span>U</span>
+          <span>I</span>
+          <span>S</span>
+          <span></span>
+        </div>
+      </bubble>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
-import { useEditor, EditorContent, JSONContent } from '@tiptap/vue-3'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useEditor, EditorContent, JSONContent, BubbleMenu as bubble } from '@tiptap/vue-3'
 import BulletList from '@tiptap/extension-bullet-list';
-import CharacterCount from '@tiptap/extension-character-count';
+// import CharacterCount from '@tiptap/extension-character-count';
 // import CodeBlock from '@tiptap/extension-code-block';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+// import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Color from '@tiptap/extension-color';
 import Document from '@tiptap/extension-document';
 import Dropcursor from '@tiptap/extension-dropcursor';
 import Focus from '@tiptap/extension-focus';
 import FontFamily from '@tiptap/extension-font-family';
-import Heading from '@tiptap/extension-heading';
-import Highlight from '@tiptap/extension-highlight';
+// import Heading from '@tiptap/extension-heading';
+// import Highlight from '@tiptap/extension-highlight';
 import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
+// import Link from '@tiptap/extension-link';
 import OrderedList from '@tiptap/extension-ordered-list';
 import Paragraph from '@tiptap/extension-paragraph';
 import Placeholder from '@tiptap/extension-placeholder';
 import Subscript from '@tiptap/extension-subscript';
-import Superscript from '@tiptap/extension-superscript';
+// import Superscript from '@tiptap/extension-superscript';
 import Table from '@tiptap/extension-table';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
@@ -84,6 +94,11 @@ import html from 'highlight.js/lib/languages/xml'
 import 'highlight.js/styles/atom-one-dark.css';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+import CustomLink from '../extends/CustomLink';
+import CustomSuperscript from '../extends/CustomSuperscript';
+import CustomHeading from '../extends/CustomHeading';
+import CustomCodeBlockLowlight from '../extends/CustomCodeBlockLowlight';
+import CustomHighlight from '../extends/CustomHighlight';
 
 interface Props {
   user: string
@@ -112,6 +127,7 @@ lowlight.register("ts", ts)
 lowlight.register("html", html)
 
 onMounted(async () => {
+  await axios.get(`http://localhost:8000/user/profile`, { withCredentials: true }).then(res => console.log(res.data)).catch(e => { console.log(e); router.push("/") })
   const title = document.getElementById("title") as HTMLInputElement
   // console.log(lowlight.listLanguages())
   if (title.value === "" && !props.noteId)
@@ -126,9 +142,12 @@ const editor = useEditor({
   // autofocus: true,
   extensions: [
     BulletList,
-    CharacterCount,
-    CodeBlockLowlight.configure({
-      lowlight,
+    // CharacterCount,
+    // CodeBlockLowlight.configure({
+    //   lowlight,
+    // }),
+    CustomCodeBlockLowlight.configure({
+      lowlight
     }),
     // CodeBlock,
     Color.configure({
@@ -141,8 +160,12 @@ const editor = useEditor({
     }),
     Focus,
     FontFamily,
-    Heading,
-    Highlight.configure({
+    // Heading,
+    CustomHeading,
+    // Highlight.configure({
+    //   multicolor: true
+    // }),
+    CustomHighlight.configure({
       multicolor: true
     }),
     HorizontalRule,
@@ -150,7 +173,8 @@ const editor = useEditor({
       inline: true,
       allowBase64: true
     }),
-    Link,
+    // Link,
+    CustomLink,
     OrderedList,
     Paragraph,
     Placeholder.configure({
@@ -193,10 +217,19 @@ const editor = useEditor({
         return placeholderText
       },
     }),
-    Superscript,
+    // Superscript,
+    CustomSuperscript,
     Subscript,
-    Table,
-    TableHeader,
+    Table.configure({
+      resizable: true,
+      allowTableNodeSelection: true,
+    }),
+    // CustomTable.configure({
+    //   resizable: true
+    // }),
+    TableHeader.configure({
+
+    }),
     TableRow,
     TaskItem,
     TaskList,
@@ -242,11 +275,9 @@ const editor = useEditor({
       const title = document.getElementById("title") as HTMLInputElement;
 
       if (
-        (event.key === "Backspace" || event.key === "ArrowUp") && // Backspace 키 입력
         isFocused && // 에디터에 포커스가 있는 상태
-        isFirstParagraph && // 첫 번째 줄이 paragraph
-        // isFirstEmpty && // 첫 번째 줄이 비어있는 상태
-        isCursorInFirstLine // 커서가 첫 번째 줄에 위치한 상태
+        isCursorInFirstLine && // 커서가 첫 번째 줄에 위치한 상태
+        (event.key === "Backspace" && isFirstParagraph || event.key === "ArrowUp") // 조건 통합
       ) {
         title.focus(); // 제목 필드로 포커스 이동
       }
@@ -257,9 +288,11 @@ const editor = useEditor({
 watch(
   () => props.noteId,
   async (newNoteId) => {
+    // title.value = "저장 중..."
     if (newNoteId) {
       try {
         // noteId가 변경되면 새로운 노트 데이터를 가져옵니다.
+        await axios.post(`http://localhost:8000/user/view`, { id: props.user, lastView: props.noteId })
         const noteResponse = await axios.get(`http://localhost:8000/note/${props.user}?id=${newNoteId}`);
         const note = noteResponse.data;
         console.log(note);
@@ -309,7 +342,7 @@ const handleDelete = async (id: string) => {
   await axios.post(`http://localhost:8000/note/delete/${id}`).then(res => console.log(res.data)).catch(e => console.error(e))
   await axios.get(`http://localhost:8000/note?writer=${props.user}`).then(res => notes.value = res.data).catch(e => console.error(e))
   if (props.noteId === id)
-    router.push(`/${props.user}/editor`)
+    router.push(`/${props.user}`)
 }
 
 const handleLogout = async () => {
@@ -317,10 +350,26 @@ const handleLogout = async () => {
     withCredentials: true
   }).then(res => { console.log(res.data); router.push("/") })
 }
+
+// const handleFetch = async () => {
+
+// }
+
+onBeforeUnmount(() => {
+  editor.value?.destroy()
+})
 </script>
 
 <style lang="scss">
 @use '@picocss/pico/css/pico.blue.min.css';
+
+body {
+  overflow-x: hidden;
+}
+
+div.tableWrapper {
+  overflow-x: auto;
+}
 
 .container {
   max-width: 60%;
@@ -330,9 +379,40 @@ const handleLogout = async () => {
   padding: 0.5rem;
   position: fixed;
   left: 0;
-  width: 240px;
+  width: 12rem;
   height: 100vh;
   background-color: #1f232a;
+  z-index: 10000;
+
+  p {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    button {
+      padding: 0.3rem 0.5rem;
+    }  
+  }
+
+  div {
+    div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      span {
+        cursor: pointer;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      button {
+        padding: 0.3rem 0.5rem; 
+        width: 3rem;
+      }
+    }
+  }
 }
 
 @media (prefers-color-scheme: light) {
@@ -342,9 +422,10 @@ const handleLogout = async () => {
 }
 
 .main {
-  width: calc(100% - 240px);
+  width: calc(100% - 12rem);
   position: absolute;
   right: 0;
+  overflow-x: auto;
 
   .title {
     @extend .container;
@@ -357,7 +438,7 @@ const handleLogout = async () => {
       margin-top: 15vh;
       margin-bottom: 10px;
       font-size: 2rem;
-      
+
       &:focus {
         outline: #8a91a2;
         box-shadow: none;
@@ -429,16 +510,17 @@ pre.is-empty::before {
 }
 
 ul[data-type="taskList"] {
-  padding: 0 10px;
+  padding: 0 0.5rem;
 
   li {
     display: flex;
     align-items: center;
+    margin-bottom: 1rem;
 
     div {
 
       p {
-        margin: auto 0;
+        margin-bottom: 0.4rem;
       }
     }
   }
