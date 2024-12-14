@@ -18,8 +18,14 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'Twemoji';
+  src: url('https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/fonts/twemoji.woff2') format('woff2');
+  unicode-range: U+1F300-1F5FF, U+1F600-1F64F, U+1F680-1F6FF, U+1F700-1F77F, U+1F900-1F9FF, U+1FA70-1FAFF;
+}
+
 *:not(code) {
-  font-family: "Interop";
+  font-family: "Twemoji", "Interop";
 }
 
 code {
@@ -27,4 +33,22 @@ code {
   span {
     font-family: "D2Coding";
   }
+}
+
+::-webkit-scrollbar {
+  width: 0.3rem;
+  height: 0.3rem;
+  /* 스크롤바의 너비 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pico-primary);
+  /* 스크롤바의 색상 */
+  border-radius: 1rem;
+}
+
+::-webkit-scrollbar-track {
+  /* background: rgba(49, 51, 56, 0.3); */
+  background: var(--bg-color-hover);
+  /*스크롤바 뒷 배경 색상*/
 }

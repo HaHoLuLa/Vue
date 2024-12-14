@@ -9,7 +9,7 @@ const CustomLink = Link.extend({
         // 이미 링크가 있으면 수정
         if (existingLink.href) {
           const url = window.prompt('Edit link', existingLink.href);
-          if (url === null) return false; // 취소 시 아무것도 하지 않음
+          if (url === null) return true; // 취소 시 아무것도 하지 않음
           if (url === '') {
             this.editor.commands.unsetLink(); // 빈 값 입력 시 링크 제거
           } else {

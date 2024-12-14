@@ -9,11 +9,12 @@
         <div v-if="!props.noteId">
           <span @click="handleSubmit">새 페이지</span>
         </div>
-        <div v-for="(item, index) in notes" :key="index">
+        <div v-for="(item, index) in notes" :key="index"
+          :style="item.id === props.noteId ? { backgroundColor: 'var(--bg-color-hover)' } : null">
           <span @click="router.push(`/${props.user}/${item.id}`); handleSubmit(); title = item.title">
             {{ item.id === props.noteId ? title || "새 페이지" : item.title }}
           </span>
-          <button @click="handleDelete(item.id)">삭제</button>
+          <button @click="handleDelete(item.id)"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
     </div>
@@ -29,16 +30,50 @@
         }">
       </div>
       <editor-content :editor="editor" class="editor" />
-      <bubble :editor="editor" v-if="editor" :tippy-options="{ duration: 0 }">
-        <div>
-          <span @click="editor.chain().focus().toggleBold().run()">B</span>
-          <span>U</span>
-          <span>I</span>
-          <span>S</span>
-          <span></span>
-        </div>
-      </bubble>
     </div>
+    <bubble :editor="editor" v-if="editor" :tippy-options="{ duration: 100, }" class="bubble">
+      <div>
+        <div role="group" style="position: relative;">
+          <button class="outline" data-tooltip="Heading" disabled><i class="fa-solid fa-heading"></i></button>
+        </div>
+        <div role="group">
+          <button @click="editor.chain().focus().toggleBold().run()" data-tooltip="Bold"
+            :class="{ 'outline': !editor.isActive('bold') }"><i class="fa-solid fa-bold"></i></button>
+          <button @click="editor.chain().focus().toggleItalic().run()" data-tooltip="Italic"
+            :class="{ 'outline': !editor.isActive('italic') }"><i class="fa-solid fa-italic"></i></button>
+          <button @click="editor.chain().focus().toggleUnderline().run()" data-tooltip="Underline"
+            :class="{ 'outline': !editor.isActive('underline') }"><i class="fa-solid fa-underline"></i></button>
+          <button @click="editor.chain().focus().toggleStrike().run()" data-tooltip="Strike"
+            :class="{ 'outline': !editor.isActive('strike') }"><i class="fa-solid fa-strikethrough"></i></button>
+        </div>
+        <div role="group">
+          <button @click="editor.chain().focus().toggleCode().run()" data-tooltip="Code"
+            :class="{ 'outline': !editor.isActive('code') }"><i class="fa-solid fa-code"></i></button>
+          <button @click="editor.chain().focus().toggleCodeBlock().run()" data-tooltip="CodeBlock"
+            :class="{ 'outline': !editor.isActive('codeBlock') }"><i class="fa-regular fa-file-code"></i></button>
+        </div>
+        <div role="group">
+          <button @click="editor.chain().focus().toggleLink({ href: '#' }).run()" data-tooltip="Link"
+            :class="{ 'outline': !editor.isActive('link') }"><i class="fa-solid fa-link"></i></button>
+          <!-- <button @click="editor.chain().focus().setColor('red').run()" data-tooltip="Color" :class="{ 'outline': !editor.isActive('color') }"><i
+              class="fa-solid fa-palette"></i></button> -->
+          <button @click="editor.chain().focus().toggleHighlight().run()" data-tooltip="Highlight"
+            :class="{ 'outline': !editor.isActive('highlight') }"><i class="fa-solid fa-highlighter"></i></button>
+          <button @click="editor.chain().focus().toggleSubscript().run()" data-tooltip="Subscript"
+            :class="{ 'outline': !editor.isActive('subscript') }"><i class="fa-solid fa-subscript"></i></button>
+          <button @click="editor.chain().focus().toggleSuperscript().run()" data-tooltip="Superscript"
+            :class="{ 'outline': !editor.isActive('superscript') }"><i class="fa-solid fa-superscript"></i></button>
+          <!-- <button @click="editor.chain().focus().setTextAlign('justify').run()" data-tooltip="Justify"><i
+              class="fa-solid fa-align-justify"></i></button>
+          <button @click="editor.chain().focus().setTextAlign('center').run()" data-tooltip="Center"><i
+              class="fa-solid fa-align-center"></i></button>
+          <button @click="editor.chain().focus().setTextAlign('left').run()" data-tooltip="Left"><i
+              class="fa-solid fa-align-left"></i></button>
+          <button @click="editor.chain().focus().setTextAlign('right').run()" data-tooltip="Right"><i
+              class="fa-solid fa-align-right"></i></button> -->
+        </div>
+      </div>
+    </bubble>
   </div>
 </template>
 
@@ -99,6 +134,8 @@ import CustomSuperscript from '../extends/CustomSuperscript';
 import CustomHeading from '../extends/CustomHeading';
 import CustomCodeBlockLowlight from '../extends/CustomCodeBlockLowlight';
 import CustomHighlight from '../extends/CustomHighlight';
+import Gapcursor from "@tiptap/extension-gapcursor";
+// import ImageResize from 'tiptap-extension-resize-image';
 
 interface Props {
   user: string
@@ -151,12 +188,12 @@ const editor = useEditor({
     }),
     // CodeBlock,
     Color.configure({
-      // types: ["codeBlockLowlight", "codeBlock", "textStyle"]
+      // types: ["codeBlockLowlight", "codeBlock", "textStyle", "highlight"]
     }),
     Document,
     Dropcursor.configure({
       // color: "#B2E51A",
-      color: "#3C71F7"
+      color: "var(--pico-primary)"
     }),
     Focus,
     FontFamily,
@@ -253,6 +290,11 @@ const editor = useEditor({
     ListKeymap,
     History,
     BubbleMenu,
+    Gapcursor,
+    // ImageResize.configure({
+    //   // inline: true,
+    //   allowBase64: true
+    // })
   ],
   onUpdate({ editor }) {
     data.value = editor.getJSON();
@@ -361,7 +403,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss">
-@use '@picocss/pico/css/pico.blue.min.css';
+@use '@picocss/pico/css/pico.pink.min.css';
+
+:root {
+  --bg-color: #1f232a;
+  --bg-color-hover: #35383f;
+}
 
 body {
   overflow-x: hidden;
@@ -376,22 +423,25 @@ div.tableWrapper {
 }
 
 .menu {
-  padding: 0.5rem;
+  padding: 0.8rem 0.3rem;
   position: fixed;
   left: 0;
   width: 12rem;
   height: 100vh;
-  background-color: #1f232a;
+  background-color: var(--bg-color);
   z-index: 10000;
 
   p {
+    padding: 0 0.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
 
     button {
-      padding: 0.3rem 0.5rem;
-    }  
+      padding: 0;
+      border: none;
+      @extend .outline;
+    }
   }
 
   div {
@@ -399,6 +449,9 @@ div.tableWrapper {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 0.2rem 0.5rem;
+      transition: background-color 0.3s ease;
+      border-radius: 0.2rem;
 
       span {
         cursor: pointer;
@@ -408,16 +461,32 @@ div.tableWrapper {
       }
 
       button {
-        padding: 0.3rem 0.5rem; 
-        width: 3rem;
+        padding: 0;
+        border: none;
+        opacity: 0;
+        /* 기본적으로 투명 */
+        visibility: hidden;
+        /* 요소 숨김 */
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        /* 부드럽게 나타나도록 설정 */
+        @extend .outline;
+      }
+
+      &:hover {
+        background-color: var(--bg-color-hover);
+
+        span {
+          max-width: 9rem;
+        }
+
+        button {
+          opacity: 1;
+          /* 완전 보이도록 */
+          visibility: visible;
+          /* 요소 표시 */
+        }
       }
     }
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  .menu {
-    background-color: #eee;
   }
 }
 
@@ -425,7 +494,7 @@ div.tableWrapper {
   width: calc(100% - 12rem);
   position: absolute;
   right: 0;
-  overflow-x: auto;
+  // overflow-x: auto;
 
   .title {
     @extend .container;
@@ -440,7 +509,6 @@ div.tableWrapper {
       font-size: 2rem;
 
       &:focus {
-        outline: #8a91a2;
         box-shadow: none;
       }
     }
@@ -449,17 +517,6 @@ div.tableWrapper {
   .editor {
     @extend .container;
     padding-bottom: 30vh;
-  }
-}
-
-.toolbar {
-  @extend .container;
-  display: flex;
-  justify-content: space-between;
-  overflow-x: auto;
-
-  button {
-    @extend .outline;
   }
 }
 
@@ -491,6 +548,19 @@ div.tableWrapper {
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+.tiptap {
+  table {
+    .selectedCell {
+      background-color: var(--bg-color-hover);
+    }
+  }
+
+  &.resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;
+  }
 }
 
 pre {
@@ -532,4 +602,51 @@ pre {
     overflow-x: auto;
   }
 }
+
+.bubble {
+  div {
+    border-radius: 0.5rem;
+    padding: 0.2rem;
+    display: flex;
+
+    div {
+      background-color: #1f232a;
+
+      button {
+        padding: 0.2rem 0.5em;
+      }
+    }
+
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-color: #eee;
+    --bg-color-hover: #ddd;
+  }
+
+  .bubble {
+    div {
+      div {
+        background-color: white;
+        // box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+        border: solid 0.05rem #eee;
+      }
+    }
+  }
+}
+
+// @media (prefers-color-scheme: dark) { 
+//   button {
+//     --pico-background-color: var(--pico-primary);
+//     --pico-border-color: var(--pico-primary);
+//     &:hover {
+//       --pico-background-color: var(--pico-primary-hover);
+//       --pico-border-color: var(--pico-primary-hover);
+//     }
+//   }
+// }
+
+
 </style>
